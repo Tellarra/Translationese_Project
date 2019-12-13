@@ -25,8 +25,9 @@ def countLang(corpusDict) :
         print(key) """
         listLang.add(key["src_lang"])
 
-    print(listLang)
+    print(len(listLang))
 
+#Compte le nombre d'exemples présents dans le corpus
 def countExem(corpusDict) :
     nbOfExem = 0
 
@@ -35,9 +36,28 @@ def countExem(corpusDict) :
             nbOfExem += 1
 
     print(nbOfExem)
+
+#Evalue les scores moyens des traductions
+def countScore(corpusDict) :
+    
+    scoreDict = defaultdict(float)
+    total = 0
+
+    for key in corpusDict :
+        if key["score"] and key["orig_lang"] == "en" :
+            scoreDict["toEn"] += key["score"]
+            total += 1
+        elif key["score"] and key["src_lang"] == "en" :
+            scoreDict["fromEn"] += key["score"]
+            total += 1
+
+    print(scoreDict["fromEn"]/ total)
+    print(scoreDict["toEn"]/ total)
+
     
 
 if __name__ == "__main__":
     corpusDict = readText("da_newstest2016.json")
     countLang(corpusDict)
     countExem(corpusDict)
+    countScore(corpusDict)
