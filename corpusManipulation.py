@@ -4,6 +4,7 @@ from math import *
 import nltk
 import nltk.translate.bleu_score as bleu
 import warnings
+import edit_distance
 warnings.filterwarnings('ignore')
 
 def readText(filename) :
@@ -46,10 +47,10 @@ def countScore(corpusDict) :
     totalTo = 0.0
 
     for key in corpusDict :
-        if key["score"] and key["tgt_lang"] == "en" :
+        if key["tgt_lang"] == "en" :
             scoreDict["toEn"] += key["score"]
             totalTo += 1.0
-        elif key["score"] and key["src_lang"] == "en" :
+        elif key["src_lang"] == "en" :
             scoreDict["fromEn"] += key["score"]
             totalFrom += 1.0
 
@@ -59,7 +60,7 @@ def countScore(corpusDict) :
     print(totalFrom * 100 / countExem(corpusDict))
     print(totalTo * 100 / countExem(corpusDict))
 
-def constructDicoBleu(dicoCorpus, directTrad) :
+def createDicoRefHyp(dicoCorpus, directTrad) :
     """
         Méthode qui construit le dictionnaire de chaque direction 
         de traduction
@@ -68,23 +69,28 @@ def constructDicoBleu(dicoCorpus, directTrad) :
     listeHypoth = []
     listeRef = []
     totalBleu = 0.0
-    """ dicoBleu = defaultdict(list)
+    dicoBleu = defaultdict(list)
     dicoTest = defaultdict(float)
+    totalRef = 0.0
 
     for key in corpusDict :
         ref = key['ref']
-        
+        #splitRef = ref.split()
         hyp = key['hyp']
         hypSplit = hyp.split()
-        if key['src_lang'] in directTrad and key['tgt_lang'] in directTrad :
+        #print(directTrad[0], " ", directTrad[1])
+        #print(key['src_lang'], " ", key['tgt_lang'])
+        #print(key['src_lang'] == directTrad[0])
+        #print("ici")
+        #print(key['tgt_lang'] == directTrad[1])
+        if key['src_lang'] == directTrad[0] and key['tgt_lang'] == directTrad[1] :
             dicoBleu[ref] += hypSplit
-            dicoTest[ref] = bleu.sentence_bleu(dicoBleu[ref], ref.split())
-
-    for key in dicoTest.keys() :
-        totalBleu += dicoTest[key] """
+    for key in dicoBleu :
+        totalBleu += bleu.sentence_bleu(dicoBleu[key], key)
+            
+        totalRef += 1
     
-
-    for key in corpusDict :
+    """ for key in corpusDict :
         if key['src_lang'] in directTrad and key['tgt_lang'] in directTrad :
             ref = key['ref']
             if ref not in listeRef :
@@ -97,9 +103,11 @@ def constructDicoBleu(dicoCorpus, directTrad) :
             if ref == ref2.split() and hyp.split() not in listeHypoth :
                 hyp = key['hyp']
                 listeHypoth.append(hyp.split())
-        totalBleu += bleu.sentence_bleu(listeHypoth, ref)
 
-    return totalBleu / len(listeRef)
+        totalBleu += bleu.sentence_bleu(listeHypoth, ref) """
+
+    #print(totalBleu / totalRef)
+    return totalBleu / totalRef
 
 
 
@@ -114,9 +122,8 @@ def scoreBleu(corpusDict, dicoTrad) :
         
         #print(directTrad)
         #for key in corpusDict :
-        dicoTrad[directTrad] = constructDicoBleu(corpusDict, directTrad)
-        print("ici ", directTrad)
-            
+        dicoTrad[directTrad] = createDicoRefHyp(corpusDict, directTrad)
+        
         #if key['src_lang'] in directTrad and key['tgt_lang'] in directTrad :
         """ ref = key['ref']
         hyp = key['hyp']
@@ -125,7 +132,6 @@ def scoreBleu(corpusDict, dicoTrad) :
         listeRef.append(ref.split())
         listeHyp.append(hyp.split()) """
             
-            #listeScore.append(bleu.sentence_bleu(ref.split(), hyp.split()))
         """
             NOTE: Pour chaque ref qui est la même -> faire une liste de toutes les hypothèses ?
             Et faire sentence_bleu() et additionner tous les scores ?
@@ -140,6 +146,8 @@ def scoreBleu(corpusDict, dicoTrad) :
     
     print(dicoTrad)
     
+#def editDist(dicoRefHyp) :
+
 
 
 
