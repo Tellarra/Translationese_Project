@@ -8,13 +8,10 @@ import edit_distance
 warnings.filterwarnings('ignore')
 
 def readText(filename) :
-    #fileDict = defaultdict()
+
     with open(filename, 'r', encoding="utf8") as file :
         fileDict = json.load(file)
 
-    # corpus est une liste de dictionnaires
-    # les cles du dictionnaires permettent d
-    # identifier la nature de chaque information
     return fileDict
 
 #Affiche le nombres de direction de traduction 
@@ -31,6 +28,7 @@ def countLang(corpusDict) :
 
 #Compte le nombre d'exemples présents dans le corpus
 def countExem(corpusDict) :
+    
     nbOfExem = 0
 
     for key in corpusDict :
@@ -66,48 +64,17 @@ def createDicoRefHyp(dicoCorpus, directTrad) :
         de traduction
         key : phrase ref, value : liste phrase hypothèses
     """
-    listeHypoth = []
-    listeRef = []
-    totalBleu = 0.0
     dicoBleu = defaultdict(list)
-    dicoTest = defaultdict(float)
-    totalRef = 0.0
-
+    
     for key in corpusDict :
         ref = key['ref']
-        #splitRef = ref.split()
         hyp = key['hyp']
         hypSplit = hyp.split()
-        #print(directTrad[0], " ", directTrad[1])
-        #print(key['src_lang'], " ", key['tgt_lang'])
-        #print(key['src_lang'] == directTrad[0])
-        #print("ici")
-        #print(key['tgt_lang'] == directTrad[1])
+
         if key['src_lang'] == directTrad[0] and key['tgt_lang'] == directTrad[1] :
             dicoBleu[ref] += hypSplit
-    for key in dicoBleu :
-        totalBleu += bleu.sentence_bleu(dicoBleu[key], key)
-            
-        totalRef += 1
-    
-    """ for key in corpusDict :
-        if key['src_lang'] in directTrad and key['tgt_lang'] in directTrad :
-            ref = key['ref']
-            if ref not in listeRef :
-                listeRef.append(ref.split())
-    
-    for ref in listeRef :
-        for key in corpusDict :
-            ref2 = key['ref']
-            hyp = key['hyp']
-            if ref == ref2.split() and hyp.split() not in listeHypoth :
-                hyp = key['hyp']
-                listeHypoth.append(hyp.split())
 
-        totalBleu += bleu.sentence_bleu(listeHypoth, ref) """
-
-    #print(totalBleu / totalRef)
-    return totalBleu / totalRef
+    return dict(dicoBleu)
 
 
 
@@ -116,38 +83,52 @@ def scoreBleu(corpusDict, dicoTrad) :
         Méthode qui calcule le score bleu
         de chaque direction de traduction
     """
-
-    listeScore = []
+    
+    dicoBleu = {}
+    chencherry = bleu.SmoothingFunction()
     for directTrad in dicoTrad :
-        
-        #print(directTrad)
-        #for key in corpusDict :
-        dicoTrad[directTrad] = createDicoRefHyp(corpusDict, directTrad)
-        
-        #if key['src_lang'] in directTrad and key['tgt_lang'] in directTrad :
-        """ ref = key['ref']
-        hyp = key['hyp']
-        print(ref.split())
-        print(hyp.split())
-        listeRef.append(ref.split())
-        listeHyp.append(hyp.split()) """
-            
-        """
-            NOTE: Pour chaque ref qui est la même -> faire une liste de toutes les hypothèses ?
-            Et faire sentence_bleu() et additionner tous les scores ?
-            Faire dictionnaire, phrase src : liste de hypothèses
-        """ 
-        
-         
-    
-        """ print(listeRef)
-        print(listeHyp) """
-        #dicoTrad[directTrad] = bleu.corpus_bleu(listeRef, listeHyp)
-    
-    print(dicoTrad)
-    
-#def editDist(dicoRefHyp) :
+        totalBleu = 0.0
+        totalBleu2 = 0.0
 
+        dicoBleu = createDicoRefHyp(corpusDict, directTrad)
+
+        for ref in dicoBleu.keys() :
+            
+            totalBleu += bleu.sentence_bleu(dicoBleu[ref], ref.split(), smoothing_function=chencherry.method1)
+        print(totalBleu)             
+        dicoTrad[directTrad] = totalBleu / len(dicoBleu.keys())
+    
+    return(dicoTrad)
+    
+def editDist(dicoCorpus) :
+
+    dicoDist = dicoTrad
+    for directTrad in dicoDist :
+        totalDist = 0.0
+        total = 0.0
+        dicoRefHyp = createDicoRefHyp(dicoCorpus, directTrad)
+        for key in dicoRefHyp.keys() :
+            for hyp in dicoRefHyp[key] :
+                sm = edit_distance.SequenceMatcher(key.split(), hyp)
+                totalDist += sm.distance()
+                total += 1
+        dicoDist[directTrad] = totalDist / total
+
+    return dicoDist
+
+def moyScoreDirectTrad(corpusDict, dicoTrad) :
+    
+    dicoScore = {}
+    for directTrad in dicoTrad :
+        totalScore = 0.0
+        total = 0.0
+        for key in corpusDict :
+            if key['src_lang'] == directTrad[0] and key['tgt_lang'] == directTrad[1] :
+                totalScore +=key['score']
+                total += 1
+        dicoScore[directTrad] = totalScore / total
+
+    print(dicoScore)
 
 
 
@@ -172,9 +153,9 @@ def minmaxDA (corpusDict) :
 
 def distribScore (corpusDict) :
     """
-    méthode qui met dans deux listes le score des phrases selon leur type (source ou ref)
-    arg : dictionnaire du corpus
-    return : deux listes de float (scores_src, scores_ref)
+        Méthode qui met dans deux listes le score des phrases selon leur type (source ou ref)
+        arg : dictionnaire du corpus
+        return : deux listes de float (scores_src, scores_ref)
     """
     scores_src = []
     scores_ref = []
@@ -191,9 +172,9 @@ def distribScore (corpusDict) :
 
 def impact_longueur (corpusDict) :
     """
-    méthode qui crée un dictionnaire de listes avec pour clé le nombre de mots et en valeur la liste des scores associés aux phrases ayant ce nombre de mot
-    arg : dictionnaire du corpus
-    renvoie : dictionnaire de listes {nb_mots : [scores]}
+        Méthode qui crée un dictionnaire de listes avec pour clé le nombre de mots et en valeur la liste des scores associés aux phrases ayant ce nombre de mot
+        arg : dictionnaire du corpus
+        renvoie : dictionnaire de listes {nb_mots : [scores]}
     """
 
     dic_scores = defaultdict(list)
@@ -206,9 +187,11 @@ def impact_longueur (corpusDict) :
 
 def moyenne_scores (dicLongueur) :
 
-    """Méthode qui crée un dictionnaire avec pour clé le nombre de mots d'une phrase et en valeur la moyenne des scores associés à ces phrases
-    arg : dictionnaire de listes {nb_mots : [scores]}
-    return : dictionnaire {nb_mots : moyenne_scores}"""
+    """
+        Méthode qui crée un dictionnaire avec pour clé le nombre de mots d'une phrase et en valeur la moyenne des scores associés à ces phrases
+        arg : dictionnaire de listes {nb_mots : [scores]}
+        return : dictionnaire {nb_mots : moyenne_scores}
+    """
 
     dic_moyenne = defaultdict(float)
 
@@ -229,11 +212,14 @@ if __name__ == "__main__":
     dicoTrad = countLang(corpusDict)
     countExem(corpusDict)
     countScore(corpusDict)
-    scoreBleu(corpusDict, dicoTrad)
+    print(scoreBleu(corpusDict, dicoTrad))
+    print(editDist(corpusDict))
+    print(moyScoreDirectTrad(corpusDict, dicoTrad))
+
 
     distribution = distribScore(corpusDict)
     dic_impact = impact_longueur(corpusDict)
-    dic_moyenne = moyenne_scores(dic_impact)
+    print(dic_moyenne = moyenne_scores(dic_impact))
     
     """
     #graphiques influence longueur phrase sur score moyen & nombre de phrases pour chaque nombre de mots
