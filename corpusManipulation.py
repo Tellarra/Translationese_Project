@@ -1,10 +1,15 @@
 import json
 from collections import defaultdict
 from math import *
-import nltk
 import nltk.translate.bleu_score as bleu
 import warnings
 import edit_distance
+import spacy
+from spacy import displacy
+#from nltk import Tree
+import en_core_web_sm
+import plotly.graph_objects as go
+
 warnings.filterwarnings('ignore')
 
 def readText(filename) :
@@ -94,8 +99,8 @@ def scoreBleu(corpusDict, dicoTrad) :
 
         for ref in dicoBleu.keys() :
             
-            totalBleu += bleu.sentence_bleu(dicoBleu[ref], ref.split(), smoothing_function=chencherry.method1)
-        print(totalBleu)             
+            totalBleu += bleu.sentence_bleu(dicoBleu[ref], ref.split(), smoothing_function=chencherry.method3)
+            
         dicoTrad[directTrad] = totalBleu / len(dicoBleu.keys())
     
     return(dicoTrad)
@@ -124,15 +129,74 @@ def moyScoreDirectTrad(corpusDict, dicoTrad) :
         total = 0.0
         for key in corpusDict :
             if key['src_lang'] == directTrad[0] and key['tgt_lang'] == directTrad[1] :
-                totalScore +=key['score']
+                totalScore += key['score']
                 total += 1
         dicoScore[directTrad] = totalScore / total
 
     print(dicoScore)
 
+def listesRefHyp(corpusDict) :
+
+    listeRefHyp = [[], []]
+    
+
+    for key in corpusDict :
+        listeRefHyp[0].append(key['ref'])
+        listeRefHyp[1].append(key['hyp'])
+
+    return listeRefHyp
+
+""" def poS(listeRefHyp) :
+
+    nlp = spacy.load("en_core_web_sm")
+    dicoPoS = defaultdict(defaultdict(str))
+
+    for elt in listeRefHyp :
+        doc = nlp(elt)
+        for token in doc :
+
+            print(token.text, token.lemma_, token.pos_, token.tag_, token.dep_,
+                    token.shape_, token.is_alpha, token.is_stop) """
+
+def tok_format(tok):
+    return "_".join([tok.orth_, tok.tag_])
+
+def to_nltk_tree(node):
+    if node.n_lefts + node.n_rights > 0:
+        return Tree(tok_format(node), [to_nltk_tree(child) for child in node.children])
+    else:
+        return tok_format(node)  
 
 
-"""PARTIE JULIETTE EX 4 ET 5"""
+def dependance(corpusDict) :
+    nlp = spacy.load("en_core_web_sm")
+    listeRefHyp = listesRefHyp(corpusDict)
+    
+    
+    #dicoRefToken = poS(listeRefHyp[0])
+    #dicoHypToken = poS(listeRefHyp[1])
+
+    for ref in listeRefHyp[0] :
+        doc = nlp(ref)
+        #[to_nltk_tree(sent.root).pretty_print() for sent in doc.sents]
+        displacy.render(doc, style='dep')
+        for token in doc:
+            print(token.text, token.dep_, token.head.text, token.head.pos_,
+            [child for child in token.children])
+            """ print(token.text, token.lemma_, token.pos_, token.tag_, token.dep_,
+                    token.shape_, token.is_alpha, token.is_stop) """
+            """ fig = go.Figure(data=[go.Table(header=dict(values=['text', 'lemma', 'pos', 'tag', 'dep', 'shape', 'ALPHA', 'STOP']),
+                    cells=dict(values=[[token.text], [token.lemma_], [token.pos_], [token.tag_], [token.dep_], [token.shape_],
+                        [token.is_alpha], [token.is_stop]]))
+                        ])
+        fig.show() """
+                    
+        break
+
+
+
+
+##################### PARTIE JULIETTE EX 4 ET 5 ###############
 
 
 def minmaxDA (corpusDict) :
@@ -212,10 +276,10 @@ if __name__ == "__main__":
     dicoTrad = countLang(corpusDict)
     countExem(corpusDict)
     countScore(corpusDict)
-    print(scoreBleu(corpusDict, dicoTrad))
-    print(editDist(corpusDict))
-    print(moyScoreDirectTrad(corpusDict, dicoTrad))
-
+    #print(scoreBleu(corpusDict, dicoTrad))
+    #print(editDist(corpusDict))
+    #print(moyScoreDirectTrad(corpusDict, dicoTrad))
+    dependance(corpusDict)
 
     distribution = distribScore(corpusDict)
     dic_impact = impact_longueur(corpusDict)
