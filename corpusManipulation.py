@@ -98,7 +98,7 @@ def createDicoRefHyp(dicoCorpus, directTrad) :
         hypSplit = hyp.split()
 
         if key['src_lang'] == directTrad[0] and key['tgt_lang'] == directTrad[1] :
-            dicoBleu[ref] += hypSplit
+            dicoBleu[ref] += [hypSplit]
     
     return dict(dicoBleu)
 
@@ -128,21 +128,19 @@ def distribScoreBleu(corpusDict, dicoTrad) :
     chencherry = bleu.SmoothingFunction()
     dicoScore = defaultdict(list)
     dicoPhrases = dicoDirIndir(corpusDict)
+
     for directTrad in dicoTrad :
         dicoBleu = createDicoRefHyp(corpusDict, directTrad)
 
         for ref in dicoBleu.keys() :
-
-            if dicoBleu[ref] in dicoPhrases['direct_hyp'] :
+            if dicoBleu[ref][0] in dicoPhrases['direct_hyp'] :
                 
                 bleuScore = bleu.sentence_bleu(dicoBleu[ref], ref.split(), smoothing_function=chencherry.method3)
-                if scoreBleu != 0.0 :
-                    dicoScore['direct_hyp'] += [bleuScore]
-            elif dicoBleu[ref] in dicoPhrases['indirect_hyp'] :
+                dicoScore['direct_hyp'] += [bleuScore]
+            elif dicoBleu[ref][0] in dicoPhrases['indirect_hyp'] :
                 bleuScore = bleu.sentence_bleu(dicoBleu[ref], ref.split(), smoothing_function=chencherry.method3)
-                if scoreBleu != 0 :
-                    dicoScore['indirect_hyp'] += [bleuScore]
-            
+                dicoScore['indirect_hyp'] += [bleuScore]
+
     return dicoScore    
 
 def editDist(dicoCorpus) :
@@ -151,7 +149,6 @@ def editDist(dicoCorpus) :
         pour chaque direction de traduction
     """
     dicoDist = dicoTrad
-    dicoDistDirIndir = {}
 
     for directTrad in dicoDist :
         totalDist = 0.0
@@ -172,15 +169,19 @@ def editDistDirIndir(dicoCorpus) :
         de distance d'édition pour les phrases direct
         et indirect
         Arg : - dicoPhrases = dictionnaires avec les phrases direct et indirect 
+        - dicoScore = le dictionnaire de tous les scores de distance d'édition
+        pour direct et indirect
     """
-    dicoPhrases = dicoDirIndir(corpusDict)
+
+    dicoPhrases = dicoDirIndir(dicoCorpus)
     dicoScore = defaultdict(list)
 
     for key in dicoCorpus :
-        if key['hyp'] in dicoPhrases['direct_hyp'] :
+
+        if key['hyp'].split() in dicoPhrases['direct_hyp'] :
             sm = edit_distance.SequenceMatcher(key['ref'].split(), key['hyp'])
             dicoScore['direct_hyp'] += [sm.distance()]
-        elif key['hyp'] in dicoPhrases['indirect_hyp'] :
+        elif key['hyp'].split() in dicoPhrases['indirect_hyp'] :
             sm = edit_distance.SequenceMatcher(key['ref'].split(), key['hyp'])
             dicoScore['indirect_hyp'] += [sm.distance()]
 
@@ -205,15 +206,15 @@ def moyScoreDirectTrad(corpusDict, dicoTrad) :
 
 def dicoDirIndir(corpusDict) :
 
-    dicoDirIndir = defaultdict(list)
+    dicoPhrases = defaultdict(list)
 
     for key in corpusDict :
         if key['orig_lang'] == key['src_lang'] :
-            dicoDirIndir["direct_hyp"] += [key['hyp'].split() ]
+            dicoPhrases["direct_hyp"] += [key['hyp'].split() ]
         else :
-            dicoDirIndir["indirect_hyp"] += [key['hyp'].split()]
+            dicoPhrases["indirect_hyp"] += [key['hyp'].split()]
 
-    return dicoDirIndir
+    return dicoPhrases
 
 """ def poS(listeRefHyp) :
 
@@ -423,8 +424,8 @@ if __name__ == "__main__":
     countScore(corpusDict)
     #print(scoreBleu(corpusDict, dicoTrad))
     #print(editDist(corpusDict))
-    #editDistDirIndir(corpusDict)
-    distribScoreBleu(corpusDict, dicoTrad)
+    print(editDistDirIndir(corpusDict))
+    #distribScoreBleu(corpusDict, dicoTrad)
     #print(moyScoreDirectTrad(corpusDict, dicoTrad))
     #dependance(corpusDict)
 
@@ -470,9 +471,9 @@ if __name__ == "__main__":
     plt.show() """
 
     #graphique distribution score BLEU selon type
-    x1 = sns.distplot(distribScoreBleu(corpusDict,dicoTrad)['direct_hyp'], label ="Source") #bleu
+    """ x1 = sns.distplot(distribScoreBleu(corpusDict,dicoTrad)['direct_hyp'], label ="Source") #bleu
     x1 = sns.distplot(distribScoreBleu(corpusDict, dicoTrad)['indirect_hyp'], label ="Référence") #orange
-    plt.show()
+    plt.show() """
 
     #graphique distribution DE selon type
     """ x1 = sns.distplot(editDistDirIndir(corpusDict)['direct_hyp'], label ="Source") #bleu
