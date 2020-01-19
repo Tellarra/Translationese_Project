@@ -134,7 +134,6 @@ def distribScoreBleu(corpusDict, dicoTrad) :
 
         for ref in dicoBleu.keys() :
             if dicoBleu[ref][0] in dicoPhrases['direct_hyp'] :
-                
                 bleuScore = bleu.sentence_bleu(dicoBleu[ref], ref.split(), smoothing_function=chencherry.method3)
                 dicoScore['direct_hyp'] += [bleuScore]
             elif dicoBleu[ref][0] in dicoPhrases['indirect_hyp'] :
@@ -171,6 +170,8 @@ def editDistDirIndir(dicoCorpus) :
         Arg : - dicoPhrases = dictionnaires avec les phrases direct et indirect 
         - dicoScore = le dictionnaire de tous les scores de distance d'édition
         pour direct et indirect
+
+        Return : Le dictionnaire dicoScore
     """
 
     dicoPhrases = dicoDirIndir(dicoCorpus)
@@ -204,6 +205,18 @@ def moyScoreDirectTrad(corpusDict, dicoTrad) :
 
     print(dicoScore)
 
+def dicoSrc(corpusDict) :
+
+    dicoPhrases = defaultdict(list)
+
+    for key in corpusDict :
+        if key['orig_lang'] == key['src_lang'] :
+            dicoPhrases["direct_src"] += [key['src']]
+        else :
+            dicoPhrases["indirect_src"] += [key['src']]
+
+    return dicoPhrases
+
 def dicoDirIndir(corpusDict) :
 
     dicoPhrases = defaultdict(list)
@@ -230,16 +243,16 @@ def dicoDirIndir(corpusDict) :
 
 def dependance(corpusDict) :
     nlp = spacy.load("en_core_web_sm")
-    dicDirIndir = dicoDirIndir(corpusDict)
+    dicoSources = dicoSrc(corpusDict)
     dicoDept = defaultdict(float)
- 
-    for key in dicDirIndir :
+    
+    for key in dicoSources :
         total = 0.0
-        for hyp in dicDirIndir[key] :
-            doc = nlp(hyp)
+        for src in dicoSources[key] :
+            doc = nlp(src)
             root = [token for token in doc if token.head == token][0]
             total += treeDepth(root)
-        dicoDept[key] = total / len(dicDirIndir[key])
+        dicoDept[key] = total / len(dicoSources[key])
 
     return dicoDept                      
 
@@ -330,11 +343,11 @@ def long_moyenne (corpusDict) :
     #pour pouvoir renvoyer la moyenne
     for key in corpusDict :
         if key["src_lang"] == key["orig_lang"] :
-            nb_mots = len(key["hyp"].split())
+            nb_mots = len(key["src"].split())
             somme_src += nb_mots
             compteur_src += 1
         else :
-            nb_mots = len(key["hyp"].split())
+            nb_mots = len(key["src"].split())
             somme_ref += nb_mots
             compteur_ref +=1
 
@@ -420,14 +433,14 @@ def mot_moyen (corpusDict) :
 if __name__ == "__main__":
     corpusDict = readText("da_newstest2016.json")
     dicoTrad = countLang(corpusDict)
-    countExem(corpusDict)
-    countScore(corpusDict)
+    #countExem(corpusDict)
+    #countScore(corpusDict)
     #print(scoreBleu(corpusDict, dicoTrad))
     #print(editDist(corpusDict))
-    print(editDistDirIndir(corpusDict))
+    #print(editDistDirIndir(corpusDict))
     #distribScoreBleu(corpusDict, dicoTrad)
     #print(moyScoreDirectTrad(corpusDict, dicoTrad))
-    #dependance(corpusDict)
+    #print(dependance(corpusDict))
 
     #données 
     #distribution = distribScore(corpusDict)
